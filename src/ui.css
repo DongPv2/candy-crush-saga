@@ -1,0 +1,194 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #1a0533;
+  color: #fff;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Screens ── */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(160deg, #1a0533 0%, #2d0a4e 60%, #1a0533 100%);
+  z-index: 10;
+}
+.screen.hidden { display: none; }
+
+/* ── Card ── */
+.card {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 32px 28px;
+  width: 100%;
+  max-width: 360px;
+  backdrop-filter: blur(12px);
+}
+
+.card h1 {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, #ff6b9d, #ffd700, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.card .subtitle {
+  text-align: center;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.85rem;
+  margin-bottom: 24px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── Form ── */
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 6px;
+}
+.form-group input {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus { border-color: #a78bfa; }
+.form-group input::placeholder { color: rgba(255,255,255,0.3); }
+
+/* ── Buttons ── */
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* ── Error / Success ── */
+.msg {
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  min-height: 36px;
+}
+.msg.error { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.msg.success { background: rgba(34,197,94,0.2); color: #86efac; }
+
+/* ── Game HUD overlay ── */
+#game-hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+  z-index: 5;
+  pointer-events: none;
+}
+#game-hud .hud-btn {
+  pointer-events: all;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: #fff;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+#game-hud .hud-nickname {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.7);
+}
+
+/* ── Leaderboard ── */
+.leaderboard-list {
+  list-style: none;
+  margin-top: 16px;
+  max-height: 55dvh;
+  overflow-y: auto;
+}
+.leaderboard-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.05);
+  font-size: 0.9rem;
+}
+.leaderboard-list li.me { background: rgba(167,139,250,0.2); border: 1px solid rgba(167,139,250,0.4); }
+.rank { font-weight: 700; width: 28px; text-align: center; color: rgba(255,255,255,0.4); }
+.rank.gold { color: #ffd700; }
+.rank.silver { color: #c0c0c0; }
+.rank.bronze { color: #cd7f32; }
+.lb-name { flex: 1; font-weight: 500; }
+.lb-score { color: #ffd700; font-weight: 700; }
+.lb-games { font-size: 0.75rem; color: rgba(255,255,255,0.4); }
+
+canvas#game-canvas {
+  display: block;
+  touch-action: none;
+}
