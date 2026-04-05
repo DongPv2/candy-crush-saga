@@ -162,3 +162,23 @@ if (session) {
 } else {
   showAuth()
 }
+
+// ── Auto-save khi tắt tab / chuyển app ───────────────────────
+
+function saveCurrentScore() {
+  if (!currentSession) return
+  const score = scoreManager.getScore()
+  if (score <= 0) return
+  // dùng sendBeacon để đảm bảo request được gửi dù tab đang đóng
+  const payload = JSON.stringify({ score })
+  const blob = new Blob([payload], { type: 'application/json' })
+  navigator.sendBeacon(
+    `/api/scores/submit?token=${encodeURIComponent(currentSession.token)}`,
+    blob,
+  )
+}
+
+window.addEventListener('beforeunload', saveCurrentScore)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveCurrentScore()
+})
