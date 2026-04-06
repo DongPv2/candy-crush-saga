@@ -30,8 +30,17 @@ export interface IAnimationManager {
   update(deltaTime: number): void
 }
 
+export interface ISoundEngine {
+  swap(): void
+  invalidSwap(): void
+  match(count: number): void
+  fall(): void
+  combo(level: number): void
+  shuffle(): void
+}
+
 export interface IRenderer {
-  render(state: GameState, timeRemaining?: number): void
+  render(state: GameState, timeRemaining?: number, deltaTime?: number): void
 }
 
 export class GameManager {
@@ -40,6 +49,7 @@ export class GameManager {
 
   private animationManager: IAnimationManager | null = null
   private renderer: IRenderer | null = null
+  private sound: ISoundEngine | null = null
 
   private readonly rows: number
   private readonly cols: number
@@ -66,6 +76,10 @@ export class GameManager {
 
   setRenderer(renderer: IRenderer): void {
     this.renderer = renderer
+  }
+
+  setSound(sound: ISoundEngine): void {
+    this.sound = sound
   }
 
   // ----------------------------------------------------------
@@ -192,12 +206,12 @@ export class GameManager {
         if (this.animationManager) {
           await this.animationManager.queueInvalidSwapAnimation(pos1, pos2, candy1 ?? undefined, candy2 ?? undefined)
         }
+        this.sound?.invalidSwap()
         return
       }
 
-      // Bước 2: Animation swap (2 kẹo di chuyển sang nhau)
-      // Sau checkSwap, candy1 đã ở pos2 và candy2 đã ở pos1 trên board
-      // Truyền candy để animation set offsetX/Y ngược chiều rồi tween về 0
+      // Bước 2: Animation swap
+      this.sound?.swap()
       if (this.animationManager) {
         await this.animationManager.queueSwapAnimation(pos1, pos2, candy1 ?? undefined, candy2 ?? undefined)
       }
@@ -213,8 +227,7 @@ export class GameManager {
         if (this.animationManager) {
           await this.animationManager.queueMatchAnimation(currentMatches)
         }
-
-        this.setState(GameStatus.REMOVING)
+        this.sound?.match(currentMatches.flatMap(m => m.candies).length)
 
         const { fallInfos, nextMatches, roundScore } = this.processCascadeStep(currentMatches)
         if (combo > 1) {
@@ -225,6 +238,7 @@ export class GameManager {
 
         if (this.animationManager && fallInfos.length > 0) {
           await this.animationManager.queueFallAnimation(fallInfos)
+          this.sound?.fall()
         }
 
         currentMatches = nextMatches
@@ -233,6 +247,7 @@ export class GameManager {
       // Hiển thị combo text 1 lần duy nhất sau khi cascade kết thúc, chỉ khi combo ≥ 3
       if (combo >= 3 && this.animationManager) {
         void this.animationManager.playComboAnimation(combo)
+        this.sound?.combo(combo)
       }
 
       // Bước 4: Kiểm tra shuffle
@@ -241,6 +256,7 @@ export class GameManager {
       if (!this.shuffleEngine.hasValidMoves(grid, this.rows, this.cols)) {
         this.setState(GameStatus.SHUFFLING)
         this.shuffleEngine.shuffleBoard(grid, this.rows, this.cols)
+        this.sound?.shuffle()
         if (this.animationManager) {
           await this.animationManager.queueShuffleAnimation()
         }

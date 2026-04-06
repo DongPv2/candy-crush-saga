@@ -15,6 +15,10 @@ export function createAuthScreen(onLogin: (session: UserSession) => void): HTMLE
   const screen = document.createElement('div')
   screen.className = 'screen'
   screen.id = 'auth-screen'
+  // Fade in animation
+  screen.style.opacity = '0'
+  screen.style.transition = 'opacity 0.4s ease'
+  setTimeout(() => { screen.style.opacity = '1' }, 10)
 
   screen.innerHTML = `
     <div class="card">
@@ -82,7 +86,9 @@ export function createLeaderboardScreen(
   screen.innerHTML = `
     <div class="card" style="max-width:420px;width:100%">
       <h1>🏆 Bảng Xếp Hạng</h1>
-      <p class="subtitle" id="lb-subtitle">Đang tải...</p>
+      <p class="subtitle" id="lb-subtitle">
+        <span class="lb-spinner"></span> Đang tải...
+      </p>
       <ul class="leaderboard-list" id="lb-list"></ul>
       <button class="btn btn-secondary" id="lb-back-btn" style="margin-top:16px">← Quay lại</button>
     </div>

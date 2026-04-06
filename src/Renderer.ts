@@ -26,6 +26,15 @@ export class Renderer implements IRenderer {
   private comboText: string | null = null
   private comboTextOpacity: number = 0
 
+  // Hint — vị trí 2 kẹo gợi ý
+  private hintPos1: { row: number; col: number } | null = null
+  private hintPos2: { row: number; col: number } | null = null
+  private hintPhase: number = 0 // 0–2π cho pulse animation
+
+  // New record banner
+  private newRecordOpacity: number = 0
+  private newRecordTimer: number = 0
+
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly visualDesigner: VisualDesigner,
@@ -112,11 +121,22 @@ export class Renderer implements IRenderer {
     this.comboTextOpacity = opacity
   }
 
+  setHint(pos1: { row: number; col: number } | null, pos2: { row: number; col: number } | null): void {
+    this.hintPos1 = pos1
+    this.hintPos2 = pos2
+    this.hintPhase = 0
+  }
+
+  showNewRecord(): void {
+    this.newRecordOpacity = 1
+    this.newRecordTimer = 2500
+  }
+
   // ----------------------------------------------------------
   // render — pipeline render đầy đủ (design §4.5)
   // ----------------------------------------------------------
 
-  render(state: GameState, timeRemaining?: number): void {
+  render(state: GameState, timeRemaining?: number, deltaTime?: number): void {
     const { ctx } = this
     const { board, score, highScore, comboCount } = state
     const { grid, rows, cols } = board
@@ -126,6 +146,17 @@ export class Renderer implements IRenderer {
     const gridH = rows * this.tileSize
     const offsetX = (this.canvasWidth - gridW) / 2
     const offsetY = (this.canvasHeight - gridH) / 2
+
+    // Update hint phase
+    if (this.hintPos1 && deltaTime) {
+      this.hintPhase += deltaTime * 0.004
+    }
+
+    // Update new record timer
+    if (this.newRecordTimer > 0 && deltaTime) {
+      this.newRecordTimer -= deltaTime
+      this.newRecordOpacity = Math.min(1, this.newRecordTimer / 400)
+    }
 
     // 1. clearRect
     ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
@@ -179,9 +210,20 @@ export class Renderer implements IRenderer {
     // 7. particleEngine.renderParticles
     this.particleEngine.renderParticles(ctx)
 
+    // 7.5 Hint glow
+    if (this.hintPos1 && this.hintPos2) {
+      this.drawHintGlow(ctx, this.hintPos1, offsetX, offsetY)
+      this.drawHintGlow(ctx, this.hintPos2, offsetX, offsetY)
+    }
+
     // 8. drawComboText (nếu có combo)
     if (this.comboText !== null && this.comboTextOpacity > 0) {
       this.drawComboText(ctx, this.comboText, this.comboTextOpacity)
+    }
+
+    // 8.5 New record banner
+    if (this.newRecordOpacity > 0) {
+      this.drawNewRecordBanner(ctx)
     }
 
     // 9. drawHUD
@@ -281,7 +323,7 @@ export class Renderer implements IRenderer {
   // drawComboText — hiển thị combo text
   // ----------------------------------------------------------
 
-  private drawComboText(
+  private drawComboText(  
     ctx: CanvasRenderingContext2D,
     text: string,
     opacity: number,
@@ -290,34 +332,37 @@ export class Renderer implements IRenderer {
     ctx.save()
     ctx.globalAlpha = Math.max(0, Math.min(1, opacity))
 
-    // Font size tăng theo độ dài text (text dài = combo cao = to hơn)
-    const baseFontSize = Math.round(this.tileSize * 0.9)
-    const boost = Math.max(0, text.length - 8) * 2
-    const fontSize = Math.min(baseFontSize + boost, Math.round(this.tileSize * 1.6))
+    const cx = this.canvasWidth / 2
+    const cy = this.canvasHeight * 0.28
+    const maxWidth = this.canvasWidth * 0.88
 
+    // Bắt đầu với font size lớn, thu nhỏ cho vừa màn hình
+    let fontSize = Math.round(this.tileSize * 0.9)
     ctx.font = `bold ${fontSize}px Arial, sans-serif`
+    while (ctx.measureText(text).width > maxWidth && fontSize > 14) {
+      fontSize -= 2
+      ctx.font = `bold ${fontSize}px Arial, sans-serif`
+    }
+
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 
-    const cx = this.canvasWidth / 2
-    const cy = this.canvasHeight * 0.28  // 1/3 trên màn hình
-
     // Shadow glow
-    ctx.shadowBlur = 24
+    ctx.shadowBlur = 20
     ctx.shadowColor = 'rgba(255, 200, 0, 0.9)'
 
     // Stroke outline
     ctx.strokeStyle = 'rgba(0,0,0,0.6)'
-    ctx.lineWidth = fontSize * 0.08
+    ctx.lineWidth = Math.max(2, fontSize * 0.07)
     ctx.strokeText(text, cx, cy)
 
-    // Gradient fill
+    // Gradient fill theo cấp độ combo
     const grad = ctx.createLinearGradient(cx, cy - fontSize / 2, cx, cy + fontSize / 2)
-    if (text.includes('BẠN THÌ HAY RỒIII') || text.includes('OÁCH PHẾT NHỜ :)') || text.includes('GỚM ĐẤYYY') || text.includes("QÚA LÀ ĐẲNG's CẤP LUÔN!") || text.includes("VUÝPPP")) {
+    if (text.includes('GODLIKE') || text.includes('LEGENDARY') || text.includes('UNSTOPPABLE')) {
       grad.addColorStop(0, '#FF69B4')
       grad.addColorStop(0.5, '#FFD700')
       grad.addColorStop(1, '#00BFFF')
-    } else if (text.includes('UẦYYY') || text.includes('KINH ĐẾYY')) {
+    } else if (text.includes('INCREDIBLE') || text.includes('FANTASTIC')) {
       grad.addColorStop(0, '#FFD700')
       grad.addColorStop(1, '#FF6347')
     } else {
@@ -327,6 +372,56 @@ export class Renderer implements IRenderer {
     ctx.fillStyle = grad
     ctx.fillText(text, cx, cy)
 
+    ctx.restore()
+  }
+
+  // ----------------------------------------------------------
+  // drawHintGlow — glow gợi ý nước đi
+  // ----------------------------------------------------------
+
+  private drawHintGlow(
+    ctx: CanvasRenderingContext2D,
+    pos: { row: number; col: number },
+    offsetX: number,
+    offsetY: number,
+  ): void {
+    const cx = offsetX + pos.col * this.tileSize + this.tileSize / 2
+    const cy = offsetY + pos.row * this.tileSize + this.tileSize / 2
+    const r = this.tileSize * 0.42
+    const pulse = 0.4 + Math.sin(this.hintPhase) * 0.3
+
+    ctx.save()
+    ctx.globalAlpha = pulse
+    const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.8)
+    grad.addColorStop(0, 'rgba(255,255,100,0.8)')
+    grad.addColorStop(1, 'rgba(255,255,100,0)')
+    ctx.beginPath()
+    ctx.arc(cx, cy, r * 1.8, 0, Math.PI * 2)
+    ctx.fillStyle = grad
+    ctx.fill()
+    ctx.restore()
+  }
+
+  // ----------------------------------------------------------
+  // drawNewRecordBanner — banner phá kỷ lục
+  // ----------------------------------------------------------
+
+  private drawNewRecordBanner(ctx: CanvasRenderingContext2D): void {
+    ctx.save()
+    ctx.globalAlpha = this.newRecordOpacity
+    ctx.font = `bold ${Math.round(this.tileSize * 0.5)}px Arial, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    const cx = this.canvasWidth / 2
+    const cy = this.canvasHeight * 0.18
+
+    ctx.shadowBlur = 16
+    ctx.shadowColor = '#FFD700'
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)'
+    ctx.lineWidth = 3
+    ctx.strokeText('🏆 KỶ LỤC MỚI!', cx, cy)
+    ctx.fillStyle = '#FFD700'
+    ctx.fillText('🏆 KỶ LỤC MỚI!', cx, cy)
     ctx.restore()
   }
 

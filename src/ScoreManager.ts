@@ -1,7 +1,5 @@
 import { Match, MatchType } from './types.ts'
 
-const HIGH_SCORE_KEY = 'candy-crush-highscore'
-
 const MATCH_SCORES: Record<MatchType, number> = {
   [MatchType.MATCH_3]: 60,
   [MatchType.MATCH_4]: 120,
@@ -12,27 +10,8 @@ const MATCH_SCORES: Record<MatchType, number> = {
 
 export class ScoreManager {
   private score: number = 0
-  private highScore: number = 0
+  private highScore: number = 0  // luôn lấy từ server, không dùng localStorage
 
-  constructor() {
-    this.highScore = this.loadHighScore()
-  }
-
-  private loadHighScore(): number {
-    try {
-      const stored = localStorage.getItem(HIGH_SCORE_KEY)
-      if (stored === null) return 0
-      const parsed = parseInt(stored, 10)
-      return isNaN(parsed) ? 0 : parsed
-    } catch {
-      return 0
-    }
-  }
-
-  /**
-   * Tính điểm cho một tập match với hệ số combo.
-   * combo = 1 → ×1, combo = 2 → ×2, ...
-   */
   calculateScore(matches: Match[], combo: number): number {
     const multiplier = Math.max(1, combo)
     let total = 0
@@ -42,41 +21,22 @@ export class ScoreManager {
     return total * multiplier
   }
 
-  /** Cộng điểm vào score hiện tại, cập nhật highScore nếu cần. */
   addScore(points: number): void {
     this.score += points
     if (this.score > this.highScore) {
       this.highScore = this.score
-      this.saveHighScore()
     }
   }
 
-  getScore(): number {
-    return this.score
-  }
+  getScore(): number { return this.score }
+  getHighScore(): number { return this.highScore }
 
-  getHighScore(): number {
-    return this.highScore
-  }
-
-  /** Lưu highScore vào localStorage. */
-  saveHighScore(): void {
-    try {
-      localStorage.setItem(HIGH_SCORE_KEY, String(this.highScore))
-    } catch {
-      // localStorage không khả dụng — bỏ qua
-    }
-  }
-
-  /** Set highScore từ server (dùng khi load game). */
+  /** Set highScore từ server khi bắt đầu game */
   setHighScore(value: number): void {
-    if (value > this.highScore) {
-      this.highScore = value
-      this.saveHighScore()
-    }
+    this.highScore = Math.max(this.highScore, value)
   }
 
-  /** Reset score về 0, giữ nguyên highScore. */
+  /** Reset score về 0, giữ nguyên highScore */
   reset(): void {
     this.score = 0
   }
