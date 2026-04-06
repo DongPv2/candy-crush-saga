@@ -41,6 +41,19 @@ export async function submitScore(score: number, token: string): Promise<void> {
   }
 }
 
+export async function fetchMyBestScore(token: string): Promise<number> {
+  try {
+    const res = await fetch('/api/scores/my-best', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return 0
+    const data = await res.json()
+    return data.best_score ?? 0
+  } catch {
+    return 0
+  }
+}
+
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   const res = await fetch('/api/scores/leaderboard')
   if (!res.ok) return []

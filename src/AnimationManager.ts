@@ -655,74 +655,75 @@ export class AnimationManager implements IAnimationManager {
   }
 
   /**
-   * playComboAnimation(comboCount, renderer) — label phóng to + mờ dần 700ms + screen shake khi combo ≥ 4.
+   * playComboAnimation — hiển thị combo text với hiệu ứng theo cấp độ.
+   * combo 2: "COMBO x2" nhỏ, combo 5+: "INCREDIBLE!" to, rực rỡ
    */
-  async playComboAnimation(
-    comboCount: number,
-    renderer?: { setComboText: (text: string, opacity: number) => void },
-  ): Promise<void> {
-    const setComboText = renderer?.setComboText.bind(renderer)
-      ?? this.rendererSetComboText
-      ?? ((_t: string, _o: number) => { /* no-op */ })
+  async playComboAnimation(comboCount: number): Promise<void> {
+    const setComboText = this.rendererSetComboText ?? (() => {})
 
-    const label = `COMBO ×${comboCount}!`
+    // Text và màu theo cấp độ
+    const labels = ['', '', 'UẦYYY!', 'KINH ĐẾYY', 'BẠN THÌ HAY RỒIII', 'OÁCH PHẾT NHỜ :)', 'GỚM ĐẤYYY', "QÚA LÀ ĐẲNG's CẤP LUÔN!"]
+    const label = comboCount < labels.length ? labels[comboCount] : `VUÝPPP x ${comboCount}!`
 
-    // Scale tween via opacity proxy
-    const state = { scale: 0.5, opacity: 1.0 }
+    // Scale cơ bản tăng theo combo: x2=1.0, x3=1.2, x4=1.4, x5+=1.6
+    const baseScale = Math.min(1.0 + (comboCount - 2) * 0.2, 2.0)
+    const state = { scale: 0, opacity: 1.0 }
 
-    // Phase 1: Scale up 0.5 → 1.3 (200ms)
+    // Phase 1: Bung ra nhanh
     await runSequential([
-      makeTween(state as unknown as Record<string, number>, 'scale', 0.5, 1.3, 200, Easing.easeOutBack),
+      makeTween(state as unknown as Record<string, number>, 'scale', 0, baseScale * 1.3, 150, Easing.easeOutBack),
     ], (c) => {
       const orig = c.onUpdate
-      c.onUpdate = (t) => {
-        orig(t)
-        setComboText(label, state.opacity)
-      }
+      c.onUpdate = (t) => { orig(t); setComboText(label, state.opacity) }
       this.addClip(c)
     })
 
-    // Phase 2: Scale 1.3 → 1.0 (100ms)
+    // Phase 2: Thu nhỏ về baseScale
     await runSequential([
-      makeTween(state as unknown as Record<string, number>, 'scale', 1.3, 1.0, 100, Easing.easeInOut),
+      makeTween(state as unknown as Record<string, number>, 'scale', baseScale * 1.3, baseScale, 100, Easing.easeInOut),
     ], (c) => {
       const orig = c.onUpdate
-      c.onUpdate = (t) => {
-        orig(t)
-        setComboText(label, state.opacity)
-      }
+      c.onUpdate = (t) => { orig(t); setComboText(label, state.opacity) }
       this.addClip(c)
     })
 
-    // Wait 400ms
-    await new Promise<void>((resolve) => {
-      this.addClip(makeDelay(400, resolve))
-    })
+    // Phase 3: Giữ nguyên (thời gian tỉ lệ combo)
+    const holdTime = 200 + comboCount * 60
+    await new Promise<void>((resolve) => { this.addClip(makeDelay(holdTime, resolve)) })
 
-    // Phase 3: Fade out 300ms
+    // Phase 4: Fade out
     await runSequential([
-      makeTween(state as unknown as Record<string, number>, 'opacity', 1.0, 0.0, 300, Easing.easeInOut),
+      makeTween(state as unknown as Record<string, number>, 'opacity', 1.0, 0.0, 250, Easing.easeInOut),
     ], (c) => {
       const orig = c.onUpdate
-      c.onUpdate = (t) => {
-        orig(t)
-        setComboText(label, state.opacity)
-      }
+      c.onUpdate = (t) => { orig(t); setComboText(label, state.opacity) }
       this.addClip(c)
     })
 
     setComboText('', 0)
 
-    // Spawn starburst particles
-    const colors = ['#FFD700', '#FFA500', '#FF6347']
-    const count = 5 + comboCount * 3
-    // Use center of screen (approximate)
-    this.particleEngine.spawnStarburst(200, 300, count, colors, ParticleType.STAR)
+    // Particles — nhiều hơn theo combo
+    const cx = window.innerWidth / 2
+    const cy = window.innerHeight / 2
+    const particleCount = 6 + comboCount * 4
+    const colorSets = [
+      ['#FFD700', '#FFA500'],
+      ['#FFD700', '#FFA500', '#FF6347'],
+      ['#FFD700', '#FF69B4', '#00BFFF', '#7FFF00'],
+      ['#FFD700', '#FF69B4', '#00BFFF', '#7FFF00', '#FF4500'],
+    ]
+    const colors = colorSets[Math.min(comboCount - 2, colorSets.length - 1)]
+    this.particleEngine.spawnStarburst(cx, cy, particleCount, colors, ParticleType.STAR)
 
-    // Screen shake for combo ≥ 4
+    // Thêm burst particles cho combo cao
     if (comboCount >= 4) {
-      this.shakeIntensity = comboCount * 1.5
-      this.shakeDuration = 200
+      this.particleEngine.spawnBurst(cx, cy, '#FFD700', comboCount * 3, ParticleType.SPARK)
+    }
+
+    // Screen shake tăng dần
+    if (comboCount >= 3) {
+      this.shakeIntensity = Math.min((comboCount - 2) * 2, 10)
+      this.shakeDuration = 150 + comboCount * 20
       this.shakeElapsed = 0
     }
   }

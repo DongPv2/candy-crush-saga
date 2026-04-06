@@ -25,12 +25,13 @@ export interface IAnimationManager {
   queueFallAnimation(fallInfos: FallInfo[], tileSize?: number): Promise<void>
   queueShuffleAnimation(): Promise<void>
   queueInvalidSwapAnimation(pos1: Position, pos2: Position, candy1?: Candy, candy2?: Candy): Promise<void>
+  playComboAnimation(combo: number): Promise<void>
   isAnimating(): boolean
   update(deltaTime: number): void
 }
 
 export interface IRenderer {
-  render(state: GameState): void
+  render(state: GameState, timeRemaining?: number): void
 }
 
 export class GameManager {
@@ -218,19 +219,23 @@ export class GameManager {
 
         // Xử lý logic: xóa match, gravity, refill
         const { fallInfos, nextMatches, roundScore } = this.processCascadeStep(currentMatches)
-        // Cộng điểm với combo multiplier
         if (combo > 1) {
-          // processCascadeStep đã addScore với multiplier=1, cộng thêm phần bonus
           this.scoreManager.addScore(roundScore * (combo - 1))
         }
 
         this.setState(GameStatus.REFILLING)
 
-        // Animation kẹo rơi
-        if (this.animationManager && fallInfos.length > 0) {
-          await this.animationManager.queueFallAnimation(fallInfos)
+        // Animation kẹo rơi + combo text song song
+        const fallPromise = (this.animationManager && fallInfos.length > 0)
+          ? this.animationManager.queueFallAnimation(fallInfos)
+          : Promise.resolve()
+
+        // Hiển thị combo text từ combo 2 trở lên (không await — chạy song song với fall)
+        if (combo >= 2 && this.animationManager) {
+          void this.animationManager.playComboAnimation(combo)
         }
 
+        await fallPromise
         currentMatches = nextMatches
       }
 

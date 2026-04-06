@@ -68,6 +68,14 @@ export class ScoreManager {
     }
   }
 
+  /** Set highScore từ server (dùng khi load game). */
+  setHighScore(value: number): void {
+    if (value > this.highScore) {
+      this.highScore = value
+      this.saveHighScore()
+    }
+  }
+
   /** Reset score về 0, giữ nguyên highScore. */
   reset(): void {
     this.score = 0

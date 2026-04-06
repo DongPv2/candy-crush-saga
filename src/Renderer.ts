@@ -116,7 +116,7 @@ export class Renderer implements IRenderer {
   // render — pipeline render đầy đủ (design §4.5)
   // ----------------------------------------------------------
 
-  render(state: GameState): void {
+  render(state: GameState, timeRemaining?: number): void {
     const { ctx } = this
     const { board, score, highScore, comboCount } = state
     const { grid, rows, cols } = board
@@ -185,7 +185,7 @@ export class Renderer implements IRenderer {
     }
 
     // 9. drawHUD
-    this.drawHUD(ctx, score, highScore, comboCount)
+    this.drawHUD(ctx, score, highScore, comboCount, timeRemaining)
   }
 
   // ----------------------------------------------------------
@@ -286,15 +286,47 @@ export class Renderer implements IRenderer {
     text: string,
     opacity: number,
   ): void {
+    if (!text) return
     ctx.save()
     ctx.globalAlpha = Math.max(0, Math.min(1, opacity))
-    ctx.font = `bold ${Math.round(this.tileSize * 0.8)}px Arial, sans-serif`
+
+    // Font size tăng theo độ dài text (text dài = combo cao = to hơn)
+    const baseFontSize = Math.round(this.tileSize * 0.9)
+    const boost = Math.max(0, text.length - 8) * 2
+    const fontSize = Math.min(baseFontSize + boost, Math.round(this.tileSize * 1.6))
+
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#FFD700'
-    ctx.shadowColor = 'rgba(255,165,0,0.8)'
-    ctx.shadowBlur = 12
-    ctx.fillText(text, this.canvasWidth / 2, this.canvasHeight / 2)
+
+    const cx = this.canvasWidth / 2
+    const cy = this.canvasHeight / 2
+
+    // Shadow glow
+    ctx.shadowBlur = 24
+    ctx.shadowColor = 'rgba(255, 200, 0, 0.9)'
+
+    // Stroke outline
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'
+    ctx.lineWidth = fontSize * 0.08
+    ctx.strokeText(text, cx, cy)
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(cx, cy - fontSize / 2, cx, cy + fontSize / 2)
+    if (text.includes('BẠN THÌ HAY RỒIII') || text.includes('OÁCH PHẾT NHỜ :)') || text.includes('GỚM ĐẤYYY') || text.includes("QÚA LÀ ĐẲNG's CẤP LUÔN!") || text.includes("VUÝPPP")) {
+      grad.addColorStop(0, '#FF69B4')
+      grad.addColorStop(0.5, '#FFD700')
+      grad.addColorStop(1, '#00BFFF')
+    } else if (text.includes('UẦYYY') || text.includes('KINH ĐẾYY')) {
+      grad.addColorStop(0, '#FFD700')
+      grad.addColorStop(1, '#FF6347')
+    } else {
+      grad.addColorStop(0, '#FFFFFF')
+      grad.addColorStop(1, '#FFD700')
+    }
+    ctx.fillStyle = grad
+    ctx.fillText(text, cx, cy)
+
     ctx.restore()
   }
 
@@ -307,6 +339,7 @@ export class Renderer implements IRenderer {
     score: number,
     highScore: number,
     comboCount: number,
+    timeRemaining?: number,
   ): void {
     const fontSize = Math.max(12, Math.round(this.tileSize * 0.38))
     ctx.save()
@@ -330,25 +363,45 @@ export class Renderer implements IRenderer {
     ctx.fillStyle = '#FFFFFF'
     ctx.fillText(score.toLocaleString(), 12, 8 + fontSize * 0.9)
 
-    // High Score (giữa)
+    // Timer (giữa)
+    if (timeRemaining !== undefined) {
+      const totalSec = Math.ceil(timeRemaining / 1000)
+      const mins = Math.floor(totalSec / 60)
+      const secs = totalSec % 60
+      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`
+      const isUrgent = timeRemaining <= 30000 // đỏ khi còn 30s
+
+      ctx.font = `bold ${fontSize}px Arial, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'
+      ctx.fillText('⏱ THỜI GIAN', this.canvasWidth / 2, 8)
+      ctx.font = `bold ${Math.round(fontSize * 1.4)}px Arial, sans-serif`
+      ctx.fillStyle = isUrgent ? '#FF4444' : '#FFFFFF'
+      if (isUrgent) {
+        ctx.shadowColor = 'rgba(255,0,0,0.6)'
+        ctx.shadowBlur = 8
+      }
+      ctx.fillText(timeStr, this.canvasWidth / 2, 8 + fontSize * 0.9)
+      ctx.shadowBlur = 0
+    } else {
+      // Fallback: high score
+      ctx.font = `bold ${fontSize}px Arial, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'
+      ctx.fillText('CAO NHẤT', this.canvasWidth / 2, 8)
+      ctx.font = `bold ${Math.round(fontSize * 1.4)}px Arial, sans-serif`
+      ctx.fillStyle = '#FFD700'
+      ctx.fillText(highScore.toLocaleString(), this.canvasWidth / 2, 8 + fontSize * 0.9)
+    }
+
+    // High score (phải)
     ctx.font = `bold ${fontSize}px Arial, sans-serif`
-    ctx.textAlign = 'center'
+    ctx.textAlign = 'right'
     ctx.fillStyle = 'rgba(255,255,255,0.6)'
-    ctx.fillText('CAO NHẤT', this.canvasWidth / 2, 8)
+    ctx.fillText('CAO NHẤT', this.canvasWidth - 12, 8)
     ctx.font = `bold ${Math.round(fontSize * 1.4)}px Arial, sans-serif`
     ctx.fillStyle = '#FFD700'
-    ctx.fillText(highScore.toLocaleString(), this.canvasWidth / 2, 8 + fontSize * 0.9)
-
-    // Combo (phải)
-    if (comboCount >= 2) {
-      ctx.font = `bold ${fontSize}px Arial, sans-serif`
-      ctx.textAlign = 'right'
-      ctx.fillStyle = 'rgba(255,255,255,0.6)'
-      ctx.fillText('COMBO', this.canvasWidth - 12, 8)
-      ctx.font = `bold ${Math.round(fontSize * 1.4)}px Arial, sans-serif`
-      ctx.fillStyle = comboCount >= 5 ? '#FFD700' : comboCount >= 3 ? '#FF8C00' : '#FFFFFF'
-      ctx.fillText(`×${comboCount}`, this.canvasWidth - 12, 8 + fontSize * 0.9)
-    }
+    ctx.fillText(highScore.toLocaleString(), this.canvasWidth - 12, 8 + fontSize * 0.9)
 
     ctx.restore()
   }
