@@ -19,117 +19,52 @@ export function createAuthScreen(onLogin: (session: UserSession) => void): HTMLE
   screen.innerHTML = `
     <div class="card">
       <h1>🍬 Candy Crush</h1>
-      <p class="subtitle">Đăng nhập để lưu điểm & xếp hạng</p>
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="login">Đăng nhập</button>
-        <button class="tab-btn" data-tab="register">Đăng ký</button>
+      <p class="subtitle">Nhập nickname để bắt đầu chơi</p>
+      <div class="form-group">
+        <label>Nickname của bạn</label>
+        <input id="join-nick" type="text" placeholder="Nhập nickname..." autocomplete="username" maxlength="32" />
       </div>
-      <div id="tab-login">
-        <div class="form-group">
-          <label>Nickname</label>
-          <input id="login-nick" type="text" placeholder="Nhập nickname..." autocomplete="username" />
-        </div>
-        <div class="form-group">
-          <label>Mật khẩu</label>
-          <input id="login-pass" type="password" placeholder="Nhập mật khẩu..." autocomplete="current-password" />
-        </div>
-        <button class="btn btn-primary" id="login-btn">Đăng nhập</button>
-        <div class="msg" id="login-msg"></div>
-      </div>
-      <div id="tab-register" style="display:none">
-        <div class="form-group">
-          <label>Nickname</label>
-          <input id="reg-nick" type="text" placeholder="Chọn nickname..." autocomplete="username" />
-        </div>
-        <div class="form-group">
-          <label>Mật khẩu</label>
-          <input id="reg-pass" type="password" placeholder="Tạo mật khẩu..." autocomplete="new-password" />
-        </div>
-        <button class="btn btn-primary" id="reg-btn">Tạo tài khoản</button>
-        <div class="msg" id="reg-msg"></div>
-      </div>
-      <button class="btn btn-secondary" id="leaderboard-btn" style="margin-top:16px">🏆 Bảng xếp hạng</button>
+      <button class="btn btn-primary" id="join-btn">Vào chơi 🎮</button>
+      <div class="msg" id="join-msg"></div>
+      <button class="btn btn-secondary" id="leaderboard-btn" style="margin-top:12px">🏆 Bảng xếp hạng</button>
     </div>
   `
 
-  // Tab switching
-  screen.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      screen.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
-      btn.classList.add('active')
-      const tab = (btn as HTMLElement).dataset.tab!
-      ;(screen.querySelector('#tab-login') as HTMLElement).style.display = tab === 'login' ? '' : 'none'
-      ;(screen.querySelector('#tab-register') as HTMLElement).style.display = tab === 'register' ? '' : 'none'
-    })
-  })
+  const joinBtn = screen.querySelector('#join-btn') as HTMLButtonElement
+  const joinMsg = screen.querySelector('#join-msg') as HTMLElement
+  const nickInput = screen.querySelector('#join-nick') as HTMLInputElement
 
-  // Login
-  const loginBtn = screen.querySelector('#login-btn') as HTMLButtonElement
-  const loginMsg = screen.querySelector('#login-msg') as HTMLElement
-  loginBtn.addEventListener('click', async () => {
-    const nick = (screen.querySelector('#login-nick') as HTMLInputElement).value.trim()
-    const pass = (screen.querySelector('#login-pass') as HTMLInputElement).value
-    if (!nick || !pass) { setMsg(loginMsg, 'Vui lòng điền đầy đủ', 'error'); return }
-    loginBtn.disabled = true
-    loginBtn.textContent = 'Đang đăng nhập...'
+  const doJoin = async () => {
+    const nick = nickInput.value.trim()
+    if (!nick) { setMsg(joinMsg, 'Vui lòng nhập nickname', 'error'); return }
+    if (nick.length < 2) { setMsg(joinMsg, 'Nickname phải ít nhất 2 ký tự', 'error'); return }
+
+    joinBtn.disabled = true
+    joinBtn.textContent = 'Đang vào...'
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: nick, password: pass }),
+        body: JSON.stringify({ nickname: nick }),
       })
       const data = await res.json()
-      if (!res.ok) { setMsg(loginMsg, data.error, 'error'); return }
+      if (!res.ok) { setMsg(joinMsg, data.error, 'error'); return }
       const session: UserSession = { token: data.token, nickname: data.nickname, id: data.id }
       saveSession(session)
       onLogin(session)
     } catch {
-      setMsg(loginMsg, 'Lỗi kết nối', 'error')
+      setMsg(joinMsg, 'Lỗi kết nối', 'error')
     } finally {
-      loginBtn.disabled = false
-      loginBtn.textContent = 'Đăng nhập'
+      joinBtn.disabled = false
+      joinBtn.textContent = 'Vào chơi 🎮'
     }
-  })
+  }
 
-  // Register
-  const regBtn = screen.querySelector('#reg-btn') as HTMLButtonElement
-  const regMsg = screen.querySelector('#reg-msg') as HTMLElement
-  regBtn.addEventListener('click', async () => {
-    const nick = (screen.querySelector('#reg-nick') as HTMLInputElement).value.trim()
-    const pass = (screen.querySelector('#reg-pass') as HTMLInputElement).value
-    if (!nick || !pass) { setMsg(regMsg, 'Vui lòng điền đầy đủ', 'error'); return }
-    regBtn.disabled = true
-    regBtn.textContent = 'Đang tạo...'
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: nick, password: pass }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setMsg(regMsg, data.error, 'error'); return }
-      const session: UserSession = { token: data.token, nickname: data.nickname, id: data.id }
-      saveSession(session)
-      setMsg(regMsg, 'Tạo tài khoản thành công!', 'success')
-      setTimeout(() => onLogin(session), 800)
-    } catch {
-      setMsg(regMsg, 'Lỗi kết nối', 'error')
-    } finally {
-      regBtn.disabled = false
-      regBtn.textContent = 'Tạo tài khoản'
-    }
-  })
+  joinBtn.addEventListener('click', doJoin)
+  nickInput.addEventListener('keydown', e => { if (e.key === 'Enter') doJoin() })
 
-  // Enter key support
-  screen.querySelectorAll('input').forEach(input => {
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        const isLogin = (screen.querySelector('#tab-login') as HTMLElement).style.display !== 'none'
-        if (isLogin) loginBtn.click()
-        else regBtn.click()
-      }
-    })
-  })
+  // Focus input ngay khi hiện
+  setTimeout(() => nickInput.focus(), 100)
 
   return screen
 }
