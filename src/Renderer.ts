@@ -300,7 +300,7 @@ export class Renderer implements IRenderer {
     ctx.textBaseline = 'middle'
 
     const cx = this.canvasWidth / 2
-    const cy = this.canvasHeight / 2
+    const cy = this.canvasHeight * 0.28  // 1/3 trên màn hình
 
     // Shadow glow
     ctx.shadowBlur = 24

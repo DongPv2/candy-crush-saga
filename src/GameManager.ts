@@ -210,14 +210,12 @@ export class GameManager {
         combo++
         this.setState(GameStatus.MATCHING)
 
-        // Animation nổ kẹo
         if (this.animationManager) {
           await this.animationManager.queueMatchAnimation(currentMatches)
         }
 
         this.setState(GameStatus.REMOVING)
 
-        // Xử lý logic: xóa match, gravity, refill
         const { fallInfos, nextMatches, roundScore } = this.processCascadeStep(currentMatches)
         if (combo > 1) {
           this.scoreManager.addScore(roundScore * (combo - 1))
@@ -225,18 +223,16 @@ export class GameManager {
 
         this.setState(GameStatus.REFILLING)
 
-        // Animation kẹo rơi + combo text song song
-        const fallPromise = (this.animationManager && fallInfos.length > 0)
-          ? this.animationManager.queueFallAnimation(fallInfos)
-          : Promise.resolve()
-
-        // Hiển thị combo text từ combo 2 trở lên (không await — chạy song song với fall)
-        if (combo >= 2 && this.animationManager) {
-          void this.animationManager.playComboAnimation(combo)
+        if (this.animationManager && fallInfos.length > 0) {
+          await this.animationManager.queueFallAnimation(fallInfos)
         }
 
-        await fallPromise
         currentMatches = nextMatches
+      }
+
+      // Hiển thị combo text 1 lần duy nhất sau khi cascade kết thúc, chỉ khi combo ≥ 3
+      if (combo >= 3 && this.animationManager) {
+        void this.animationManager.playComboAnimation(combo)
       }
 
       // Bước 4: Kiểm tra shuffle

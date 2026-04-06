@@ -704,7 +704,7 @@ export class AnimationManager implements IAnimationManager {
 
     // Particles — nhiều hơn theo combo
     const cx = window.innerWidth / 2
-    const cy = window.innerHeight / 2
+    const cy = window.innerHeight * 0.28
     const particleCount = 6 + comboCount * 4
     const colorSets = [
       ['#FFD700', '#FFA500'],
