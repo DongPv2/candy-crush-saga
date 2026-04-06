@@ -1,4 +1,4 @@
-import { saveSession, clearSession, fetchLeaderboard, type UserSession, type LeaderboardEntry } from './session.ts'
+import { saveSession, fetchLeaderboard, type UserSession, type LeaderboardEntry } from './session.ts'
 
 // ── DOM helpers ──────────────────────────────────────────────
 
@@ -127,18 +127,13 @@ export function createLeaderboardScreen(
 export function createGameHud(
   nickname: string,
   onLeaderboard: () => void,
-  onLogout: () => void,
 ): HTMLElement {
   const hud = document.createElement('div')
   hud.id = 'game-hud'
   hud.innerHTML = `
-    <button class="hud-btn" id="hud-lb">🏆</button>
     <span class="hud-nickname">👤 ${nickname}</span>
-    <button class="hud-btn" id="hud-logout">Đăng xuất</button>
+    <button class="hud-btn" id="hud-lb">🏆 Xếp hạng</button>
   `
   hud.querySelector('#hud-lb')!.addEventListener('click', onLeaderboard)
-  hud.querySelector('#hud-logout')!.addEventListener('click', () => {
-    if (confirm('Đăng xuất?')) { clearSession(); onLogout() }
-  })
   return hud
 }

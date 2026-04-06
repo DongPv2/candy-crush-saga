@@ -135,31 +135,36 @@ body {
 .msg.error { background: rgba(239,68,68,0.2); color: #fca5a5; }
 .msg.success { background: rgba(34,197,94,0.2); color: #86efac; }
 
-/* ── Game HUD overlay ── */
+/* ── Game bottom bar ── */
 #game-hud {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  bottom: 0; left: 0; right: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+  padding: 8px 16px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
   z-index: 5;
-  pointer-events: none;
 }
 #game-hud .hud-btn {
-  pointer-events: all;
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 10px;
   color: #fff;
-  padding: 6px 14px;
+  padding: 7px 16px;
   font-size: 0.85rem;
   cursor: pointer;
+  white-space: nowrap;
 }
 #game-hud .hud-nickname {
-  font-size: 0.9rem;
-  color: rgba(255,255,255,0.7);
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40vw;
+  text-align: center;
 }
 
 /* ── Leaderboard ── */

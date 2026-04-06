@@ -104,7 +104,6 @@ function showGame(session: UserSession) {
   hudEl = createGameHud(
     session.nickname,
     () => showLeaderboard(session),
-    () => { stopGameLoop(); showAuth() },
   )
   document.body.appendChild(hudEl)
 
